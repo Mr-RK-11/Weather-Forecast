@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #F0F8FF);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            padding: 20px;
+            text-align: center;
+            
+        }
+        h1 {
+            margin: 20px 0;
+            font-size: 28px;
+        }
+        form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 60%;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            outline: none;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .current-weather {
+            padding: 20px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .daily-forecast {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px 0;
+            flex-wrap: nowrap;
+        }
+
+        .time-tile-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            flex-wrap: wrap;
+            background: #98e5faa9;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .daily-card, .time-tile {
+            width: 120px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .daily-card img, .time-tile img {
+            width: 85px;
+            height: 85px;
+            background: #dde7e9;
+            border-radius: 35px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Styling for the detailed weather popup */
+        .detailed-weather-popup {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 200px;
+            z-index: 999;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .detailed-weather-popup p {
+            margin: 5px 0;
+        }
+
+    </style>
+</head>
+<body>
+    
+
+    <div class="container">
+        <h1>Weather Forecast</h1>
+        <form id="weather-form">
+            <input type="text" id="city" name="city" placeholder="Enter city" required>
+            <button type="submit">Get Weather</button>
+        </form>
+
+        <div class="current-weather hidden" id="current-weather">
+            <h2 id="current-city"></h2>
+            <img id="current-icon" src="" alt="Weather Icon">
+            <p id="current-temp"></p>
+            <p id="current-desc"></p>
+        </div>
+
+        <div class="daily-forecast hidden" id="daily-forecast"></div>
+    </div>
+    <div class="time-tile-container hidden" id="time-tile-container"></div>
+    <script>
+        document.getElementById('weather-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const city = document.getElementById('city').value;
+            const response = await fetch('/get_weather', {
+                method: 'POST',
+                body: new FormData(this),
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                displayWeather(data, city);
+            }
+        });
+
+        let activeDay = null;  // Variable to track the currently active day's time tiles
+
+        function displayWeather(data, city) {
+            document.getElementById('current-city').textContent = city;
+
+            const dailyForecast = document.getElementById('daily-forecast');
+            dailyForecast.innerHTML = '';  // Clear previous data
+
+            const timeTileContainer = document.getElementById('time-tile-container');
+            timeTileContainer.innerHTML = '';  // Clear time tiles
+
+            // Create daily forecast section for each day
+            for (const [day, entries] of Object.entries(data)) {
+                const dailyCard = document.createElement('div');
+                dailyCard.className = 'daily-card';
+                dailyCard.innerHTML = `
+                    <p><strong>${day}</strong></p>
+                    <img src="http://openweathermap.org/img/wn/${entries[0].icon}@2x.png" alt="${entries[0].description} icon">
+                    <p>${entries[0].temperature} °C</p>
+                `;
+
+                dailyCard.addEventListener('click', function () {
+                    if (activeDay !== day) {
+                        displayTimeTiles(entries);  // Show time tiles for the selected day
+                        activeDay = day;
+                    }
+                });
+
+                dailyForecast.appendChild(dailyCard);
+            }
+
+            dailyForecast.classList.remove('hidden');
+        }
+
+        function displayTimeTiles(entries) {
+            const timeTileContainer = document.getElementById('time-tile-container');
+            timeTileContainer.innerHTML = '';  // Clear previous time tiles
+
+            entries.forEach(entry => {
+                const timeTile = document.createElement('div');
+                timeTile.className = 'time-tile';
+                timeTile.innerHTML = `
+                    <p><strong>${entry.date_time.split(' ')[1]}</strong></p>
+                    <img src="http://openweathermap.org/img/wn/${entry.icon}@2x.png" alt="${entry.description} icon">
+                    <p>${entry.temperature} °C</p>
+                    <p>${entry.description}</p>
+                `;
+                
+                // Add hover event listener to show detailed weather
+                timeTile.addEventListener('mouseenter', function () {
+                    showDetailedWeather(entry, timeTile);
+                });
+
+                timeTile.addEventListener('mouseleave', function () {
+                    hideDetailedWeather();
+                });
+
+                timeTileContainer.appendChild(timeTile);
+            });
+
+            timeTileContainer.classList.remove('hidden');
+        }
+
+        let detailedPopup = null;
+
+        function showDetailedWeather(entry, tile) {
+            // Remove any existing popup
+            if (detailedPopup) {
+                document.body.removeChild(detailedPopup);
+            }
+
+            // Create the popup
+            detailedPopup = document.createElement('div');
+            detailedPopup.className = 'detailed-weather-popup';
+
+            const popupContent = `
+                <p><strong>Time:</strong> ${entry.date_time.split(' ')[1]}</p>
+                <p><strong>Temperature:</strong> ${entry.temperature} °C</p>
+                <p><strong>Humidity:</strong> ${entry.humidity}%</p>
+                <p><strong>Description:</strong> ${entry.description}</p>
+                <p><strong>Wind Speed:</strong> ${entry.wind_speed} m/s</p>
+            `;
+
+            detailedPopup.innerHTML = popupContent;
+
+            // Position the popup on top of the corresponding time tile
+            const tileRect = tile.getBoundingClientRect();
+            let top = tileRect.top - detailedPopup.offsetHeight - 10;
+            let left = tileRect.left + (tileRect.width / 2) - (detailedPopup.offsetWidth / 2);
+
+            // Adjust position if the popup is out of bounds (right or bottom)
+            if (left + detailedPopup.offsetWidth > window.innerWidth) {
+                left = window.innerWidth - detailedPopup.offsetWidth - 10;
+            }
+            if (top < 0) {
+                top = tileRect.bottom + 10; // Adjust to be below the tile if it's too high
+            }
+
+            detailedPopup.style.top = `${top}px`;
+            detailedPopup.style.left = `${left}px`;
+
+            document.body.appendChild(detailedPopup);
+
+            // Fade in the popup
+            setTimeout(() => {
+                detailedPopup.style.opacity = 1;
+            }, 10);
+        }
+
+        function hideDetailedWeather() {
+            if (detailedPopup) {
+                // Fade out the popup and remove it only after the mouse completely leaves the tile
+                detailedPopup.style.opacity = 0;
+                setTimeout(() => {
+                    document.body.removeChild(detailedPopup);
+                    detailedPopup = null;
+                }, 300); // Delay to allow fade-out animation
+            }
+        }
+
+    </script>
+</body>
+</html>
