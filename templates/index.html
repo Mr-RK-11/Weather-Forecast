@@ -16,6 +16,16 @@
             align-items: center;
             min-height: 100vh;
         }
+        .main-heading {
+            font-size: 36px;              /* Make it bigger */
+            font-weight: bold;            /* Emphasize it */
+            color: #2e9732;               /* Use a distinct color */
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+            margin: 20px 0;               /* Add spacing around */
+            text-transform: uppercase;    /* Make it all caps */
+            letter-spacing: 2px;          /* Add some spacing between letters */
+        }
+
         .container {
             max-width: 800px;
             padding: 20px;
@@ -119,7 +129,13 @@
     
 
     <div class="container">
-        <h1>Weather Forecast</h1>
+        <h1 class="main-heading">Weather Forecast</h1>
+
+        <h4 style="margin-top: 10px; color: #555; font-weight: normal; line-height: 1.6;">
+            Enter a city name to view its 5-day weather forecast with 3-hour interval updates for each day.  
+            Click on any day to display detailed weather data for specific time slots, and hover over a time slot to see more details.
+        </h4>
+        
         <form id="weather-form">
             <input type="text" id="city" name="city" placeholder="Enter city" required>
             <button type="submit">Get Weather</button>
@@ -163,18 +179,25 @@
             const timeTileContainer = document.getElementById('time-tile-container');
             timeTileContainer.innerHTML = '';  // Clear time tiles
 
-            // Create daily forecast section for each day
             for (const [day, entries] of Object.entries(data)) {
+                const dateObj = new Date(day);
+                const options = { weekday: 'long' }; // Get day name
+                const dayName = dateObj.toLocaleDateString('en-US', options);
+                const formattedDate = dateObj.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+
                 const dailyCard = document.createElement('div');
                 dailyCard.className = 'daily-card';
                 dailyCard.innerHTML = `
-                    <p><strong>${day}</strong></p>
+                    <p>
+                        <strong style="font-size: 18px;">${dayName}</strong><br>
+                        <span style="font-size: 14px; color: gray;">${formattedDate}</span>
+                    </p>
                     <img src="http://openweathermap.org/img/wn/${entries[0].icon}@2x.png" alt="${entries[0].description} icon">
                     <p>${entries[0].temperature} °C</p>
                 `;
 
                 dailyCard.addEventListener('click', function () {
-                    if (activeDay !== day) {
+                    if (activeDay !== day) {  // Compare raw day key to track active day
                         displayTimeTiles(entries);  // Show time tiles for the selected day
                         activeDay = day;
                     }
@@ -186,20 +209,29 @@
             dailyForecast.classList.remove('hidden');
         }
 
+
+
         function displayTimeTiles(entries) {
             const timeTileContainer = document.getElementById('time-tile-container');
             timeTileContainer.innerHTML = '';  // Clear previous time tiles
 
             entries.forEach(entry => {
+                const dateObj = new Date(entry.date_time);
+                const formattedTime = dateObj.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+
                 const timeTile = document.createElement('div');
                 timeTile.className = 'time-tile';
                 timeTile.innerHTML = `
-                    <p><strong>${entry.date_time.split(' ')[1]}</strong></p>
+                    <p><strong>${formattedTime}</strong></p>
                     <img src="http://openweathermap.org/img/wn/${entry.icon}@2x.png" alt="${entry.description} icon">
                     <p>${entry.temperature} °C</p>
                     <p>${entry.description}</p>
                 `;
-                
+
                 // Add hover event listener to show detailed weather
                 timeTile.addEventListener('mouseenter', function () {
                     showDetailedWeather(entry, timeTile);
@@ -215,20 +247,24 @@
             timeTileContainer.classList.remove('hidden');
         }
 
+
         let detailedPopup = null;
 
         function showDetailedWeather(entry, tile) {
-            // Remove any existing popup
             if (detailedPopup) {
                 document.body.removeChild(detailedPopup);
             }
 
-            // Create the popup
             detailedPopup = document.createElement('div');
             detailedPopup.className = 'detailed-weather-popup';
 
+            const dateObj = new Date(entry.date_time);
+            const formattedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const formattedTime = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
             const popupContent = `
-                <p><strong>Time:</strong> ${entry.date_time.split(' ')[1]}</p>
+                <p><strong>Date:</strong> ${formattedDate}</p>
+                <p><strong>Time:</strong> ${formattedTime}</p>
                 <p><strong>Temperature:</strong> ${entry.temperature} °C</p>
                 <p><strong>Humidity:</strong> ${entry.humidity}%</p>
                 <p><strong>Description:</strong> ${entry.description}</p>
@@ -236,18 +272,16 @@
             `;
 
             detailedPopup.innerHTML = popupContent;
-
-            // Position the popup on top of the corresponding time tile
+            
             const tileRect = tile.getBoundingClientRect();
             let top = tileRect.top - detailedPopup.offsetHeight - 10;
             let left = tileRect.left + (tileRect.width / 2) - (detailedPopup.offsetWidth / 2);
 
-            // Adjust position if the popup is out of bounds (right or bottom)
             if (left + detailedPopup.offsetWidth > window.innerWidth) {
                 left = window.innerWidth - detailedPopup.offsetWidth - 10;
             }
             if (top < 0) {
-                top = tileRect.bottom + 10; // Adjust to be below the tile if it's too high
+                top = tileRect.bottom + 10;
             }
 
             detailedPopup.style.top = `${top}px`;
@@ -255,11 +289,11 @@
 
             document.body.appendChild(detailedPopup);
 
-            // Fade in the popup
             setTimeout(() => {
                 detailedPopup.style.opacity = 1;
             }, 10);
         }
+
 
         function hideDetailedWeather() {
             if (detailedPopup) {
