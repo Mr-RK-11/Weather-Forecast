@@ -191,13 +191,10 @@
             timeTileContainer.innerHTML = '';  // Clear previous time tiles
 
             entries.forEach(entry => {
-                const dateObj = new Date(entry.date_time);
-                const options1 = { hour: '2-digit', minute: '2-digit', hour12: true };
-                const formattedDate1 = dateObj.toLocaleDateString('en-GB', options1);
                 const timeTile = document.createElement('div');
                 timeTile.className = 'time-tile';
                 timeTile.innerHTML = `
-                    <p><strong> ${formattedDate}</strong></p>
+                    <p><strong>${entry.date_time.split(' ')[1]}</strong></p>
                     <img src="http://openweathermap.org/img/wn/${entry.icon}@2x.png" alt="${entry.description} icon">
                     <p>${entry.temperature} °C</p>
                     <p>${entry.description}</p>
@@ -229,12 +226,9 @@
             // Create the popup
             detailedPopup = document.createElement('div');
             detailedPopup.className = 'detailed-weather-popup';
-            const dateObj = new Date(entry.date_time);
-            const options = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
-            const formattedDate = dateObj.toLocaleDateString('en-GB', options);
 
             const popupContent = `
-                <p><strong>Date & Time:</strong> ${formattedDate}</p>
+                <p><strong>Time:</strong> ${entry.date_time.split(' ')[1]}</p>
                 <p><strong>Temperature:</strong> ${entry.temperature} °C</p>
                 <p><strong>Humidity:</strong> ${entry.humidity}%</p>
                 <p><strong>Description:</strong> ${entry.description}</p>
